@@ -2,25 +2,25 @@ using System.Collections.Generic;
 
 class Timer
 {
-    public static List<Timer> timers = new List<Timer>();
-    public static List<Timer> activetimers = new List<Timer>();
-    public UInt64 Limit;
+    public static List<Timer> Timers = new List<Timer>();
+    public static List<Timer> ActiveTimers = new List<Timer>();
+    public UInt64 limit;
     public UInt64 timing;
     public bool active;
     public bool loop;
-    public Timer(UInt64 milliseconds,bool enableoncreate, bool looping)
+    public Timer(UInt64 milliseconds, bool enableOnCreate, bool looping)
     {
-        Limit = milliseconds;
+        limit = milliseconds;
         loop = looping;
         active = true;
-        timers.Add(this);
-        if (enableoncreate) activetimers.Add(this);
+        Timers.Add(this);
+        if (enableOnCreate) ActiveTimers.Add(this);
     }
     public void activate()
     {
         if (!active) 
         {
-            activetimers.Add(this);
+            ActiveTimers.Add(this);
             active = true; 
         }
     }
@@ -28,14 +28,14 @@ class Timer
     {
         if (active) 
         {
-            activetimers.Remove(this);
+            ActiveTimers.Remove(this);
             active = false; 
         }
     }
     public void delete()
     {
-        if (activetimers.Contains(this)) activetimers.Remove(this);
-        if (timers.Contains(this)) timers.Remove(this);
+        if (ActiveTimers.Contains(this)) ActiveTimers.Remove(this);
+        if (Timers.Contains(this)) Timers.Remove(this);
     }
     public void reset()
     {
@@ -43,14 +43,14 @@ class Timer
     }
     public void change(UInt64 milliseconds, bool looping)
     {
-        Limit = milliseconds;
+        limit = milliseconds;
         loop = looping;
         timing = 0;
     }
-    public event EventHandler beep;
+    public event EventHandler Beep;
     public void update(Time dt)
     {
-        if (timing + (ulong)dt.AsMilliseconds() < Limit) // huge optimisation could be done there
+        if (timing + (ulong)dt.AsMilliseconds() < limit) // might polish this place a bit but not sure
         {
             timing += (ulong)dt.AsMilliseconds();
         }
@@ -59,23 +59,23 @@ class Timer
             if (loop)
             {
                 timing = 0;
-                beep(this, EventArgs.Empty);
+                Beep(this, EventArgs.Empty);              
             }
             else
             {
                 disable();
-                beep(this, EventArgs.Empty);
+                Beep(this, EventArgs.Empty);
             }
         }
     }
 }
 class AnimatedTexture
 {
-    public Texture[] txlist;
-    public string ActiveTextureSet;
+    public Texture[] textureList;
+    public string activeTextureSet;
     public int frames;
     public uint[] durations; // in milliseconds
-    public int index; //txlist[index].duration, what
+    public int index;
     public Dictionary<string, AnimatedTexture> MatchDict = new Dictionary<string, AnimatedTexture>();
     public AnimatedTexture(Texture[] texture, uint[] durs)
     {
@@ -83,9 +83,10 @@ class AnimatedTexture
         {
             throw new ArraySizesDontMatchException("there are less elements than there are frames in given argument uint[][] durs");
         }
-        txlist = texture;
+        durations = durs;
+        textureList = texture;
         index = -1;
-        frames = txlist.Length;
+        frames = textureList.Length;
     }
     public uint GetDuration() //current
     {
@@ -96,80 +97,72 @@ class AnimatedTexture
         return durations[index];
     }
     public AnimatedTexture(Texture texture, IntRect[] areas, uint[][] durs ,string[] names, uint XStep)
-    {                         
-        if (areas.Length != names.Length
-            || areas.Length != durs.Length) throw new ArraySizesDontMatchException("Count of Elements in all given array arguments dont match");
-        for(int h = 0; h < areas.Length; h++)   
-        {                                      
-            uint _TEMP = (uint)areas[h].Width / XStep;
-            if(durs[h].Length < _TEMP)
-            {
-                throw new ArraySizesDontMatchException("there are less elements than there are frames in given argument uint[][] durs");
-            }
+    {
+        if (areas.Length != names.Length || areas.Length != durs.Length)
+            { throw new ArraySizesDontMatchException("Count of Elements in all given array arguments dont match"); }
+        for(int h = 0; h < areas.Length; h++)
+        {
+            uint frameTemp = (uint)areas[h].Width / XStep;
+            if(durs[h].Length < frameTemp)
+                { throw new ArraySizesDontMatchException("there are less elements than there are frames in given argument uint[][] durs"); }
 
-            var copytoimage = texture.CopyToImage();
-            Texture _TOUSEINDICT = new Texture(copytoimage, areas[h]);
-            var USEINDICT = _TOUSEINDICT.CopyToImage();
-            Texture[] _TOADDTODICT = new Texture[_TEMP];
-            for(int LL = 0; LL < _TEMP; LL++)
+            var copyToImage = texture.CopyToImage();
+            Texture toUseInDictionary = new Texture(copyToImage, areas[h]);
+            var useInDictionary = toUseInDictionary.CopyToImage();
+            Texture[] toAddToDictionary = new Texture[frameTemp];
+            for(int iter = 0; iter < frameTemp; iter++)
             {
-                _TOADDTODICT[LL] = new Texture(USEINDICT, new IntRect((int)(LL * XStep), 0, (int)XStep, (int)copytoimage.Size.Y));
+                toAddToDictionary[iter] = new Texture(useInDictionary, new IntRect((int)(iter * XStep), 0, (int)XStep, (int)copyToImage.Size.Y));
             }
-            var K = new AnimatedTexture(_TOADDTODICT, durs[h]);
-            K.durations = durs[h];
-            MatchDict.Add(names[h], K);
+            MatchDict.Add(names[h], new AnimatedTexture(toAddToDictionary, durs[h]));
         }
         SetActive(names[0]);
     }
     public AnimatedTexture(Texture texture, IntRect area, uint[] durs, string names, uint XStep)
     {
-        uint _TEMP = (uint)area.Width / XStep;
-        if (durs.Length < _TEMP)
+        uint frameTemp = (uint)area.Width / XStep;
+        if (durs.Length < frameTemp)
         {
             throw new ArraySizesDontMatchException("there are less elements than there are frames in given argument uint[][] durs");
         }
 
-        var copytoimage = texture.CopyToImage();
-        Texture _TOUSEINDICT = new Texture(copytoimage, area);
-        var USEINDICT = _TOUSEINDICT.CopyToImage();
-        Texture[] _TOADDTODICT = new Texture[_TEMP];
-        for (int LL = 0; LL < _TEMP; LL++)
+        var copyToImage = texture.CopyToImage();
+        Texture toUseInDictionary = new Texture(copyToImage, area);
+        var useInDictionary = toUseInDictionary.CopyToImage();
+        Texture[] toAddToDictionary = new Texture[frameTemp];
+        for (int iter = 0; iter < frameTemp; iter++)
         {
-            _TOADDTODICT[LL] = new Texture(USEINDICT, new IntRect((int)(LL * XStep), 0, (int)XStep, (int)copytoimage.Size.Y));
+            toAddToDictionary[iter] = new Texture(useInDictionary, new IntRect((int)(iter * XStep), 0, (int)XStep, (int)copyToImage.Size.Y));
         }
-        var K = new AnimatedTexture(_TOADDTODICT, durs);
-        K.durations = durs;
-        MatchDict.Add(names, K);
+        MatchDict.Add(names, new AnimatedTexture(toAddToDictionary, durs));
         SetActive(names);
     }
     public void AddTexture(Texture texture, IntRect area, uint[] durs,string names, uint XStep)
     {
-        uint _TEMP = (uint)area.Width / XStep;
-        if (durs.Length < _TEMP)
+        uint frameTemp = (uint)area.Width / XStep;
+        if (durs.Length < frameTemp)
         {
             throw new ArraySizesDontMatchException("there are less elements than there are frames in given argument uint[][] durs");
         }
-        var copytoimage = texture.CopyToImage();
-        Texture _TOUSEINDICT = new Texture(copytoimage, area);
-        var USEINDICT = _TOUSEINDICT.CopyToImage();
-        Texture[] _TOADDTODICT = new Texture[_TEMP];
-        for (int LL = 0; LL < _TEMP; LL++)
+        var copyToImage = texture.CopyToImage();
+        Texture toUseInDictionary = new Texture(copyToImage, area);
+        var useInDictionary = toUseInDictionary.CopyToImage();
+        Texture[] toAddToDictionary = new Texture[frameTemp];
+        for (int iter = 0; iter < frameTemp; iter++)
         {
-            _TOADDTODICT[LL] = new Texture(USEINDICT, new IntRect((int)(LL * XStep), 0, (int)XStep, (int)copytoimage.Size.Y));
+            toAddToDictionary[iter] = new Texture(useInDictionary, new IntRect((int)(iter * XStep), 0, (int)XStep, (int)copyToImage.Size.Y));
         }
-        var K = new AnimatedTexture(_TOADDTODICT, durs);
-        K.durations = durs;
-        MatchDict.Add(names, K);
+        MatchDict.Add(names, new AnimatedTexture(toAddToDictionary, durs));
     }
-    public void SetActive(string val)
+    public void SetActive(string keyValue)
     {
-        if(MatchDict.ContainsKey(val))
+        if(MatchDict.ContainsKey(keyValue))
         {
-            ActiveTextureSet = val;
+            activeTextureSet = keyValue;
             index = -1;
-            frames = MatchDict[val].frames;
-            txlist = MatchDict[val].txlist;
-            durations = MatchDict[val].durations;
+            frames = MatchDict[keyValue].frames;
+            textureList = MatchDict[keyValue].textureList;
+            durations = MatchDict[keyValue].durations;
         }
         else
         {
@@ -180,12 +173,12 @@ class AnimatedTexture
     {
         if(index + 1 <= frames - 1)
         {
-            return txlist[++index];
+            return textureList[++index];
         }
         else if(index +1 > frames - 1)
         {
             index = -1;
-            return txlist[++index];
+            return textureList[++index];
         }
         return null;
     }
