@@ -91,12 +91,9 @@ class AnimatedTexture
     {
         if(index == -1)
         {
-            return durations[index + 1];
+            return durations[0];
         }
-        else
-        {
-            return durations[index];
-        }
+        return durations[index];
     }
     public AnimatedTexture(Texture texture, IntRect[] areas, uint[][] durs ,string[] names, uint XStep)
     {                         
