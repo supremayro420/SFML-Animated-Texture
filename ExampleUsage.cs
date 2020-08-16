@@ -20,6 +20,7 @@ class Entity : AnimatedTextureDummy
         Position = pos; animtexture = animtexset;
         abc.beep += TEXTURETIMER;
         abc.change(animtexture.GetDuration(), true);
+        AdvanceTexture();
     }
     public void TEXTURETIMER(object sender, EventArgs @e)
     {
