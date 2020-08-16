@@ -27,3 +27,18 @@ class Entity : AnimatedTextureDummy
         abc.change(animtexture.GetDuration(), true);
     }
 }
+class Program
+{
+    static RenderWindow window = new RenderWindow(new VideoMode(600, 400), "abc", Styles.Default);
+    static void Main()
+    {
+        Clock deltaclock = new Clock();
+        while(window.IsOpen)
+        {
+            foreach(Timer tim in Timer.ActiveTimers)
+            {
+                tim.update(deltaclock.Restart());
+            }
+        }
+    }
+}
